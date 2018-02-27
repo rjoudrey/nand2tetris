@@ -40,4 +40,43 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    // Dest pins and associated destinations:
+    // d1 = A (pin 5), d2 = D (pin 4), d3 = M (pin 3)
+
+    Not(in=instruction[15], out=isAInstruction);
+    // For convenience
+    Not(in=isAInstruction, out=isBInstruction);
+    
+    // 'D' Register
+    And(a=isBInstruction, b=instruction[4], out=loadD);
+    DRegister(in=aluOut, load=loadD, out=dOut);
+
+    // 'A' Register
+    And(a=isBInstruction, b=instruction[5], out=loadA0);
+    Or(a=loadA0, b=isAInstruction, out=loadA);
+    Mux16(a=aluOut, b[0..14]=instruction[0..14], sel=isAInstruction, out=newAValue);
+    ARegister(in=newAValue, load=loadA, out=aOut, out[0..14]=addressM);
+
+    // Mux to choose between A or M as second operand to ALU
+    // If a=0, choose A, else M
+    Mux16(a=aOut, b=inM, sel=instruction[12], out=y);
+
+    // ALU
+    ALU(x=dOut, y=y, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=aluOut, out=outM, zr=jeq, ng=jlt);
+
+    // JMP control bits:    
+    Not(in=jeq, out=jne);
+    Not(in=jlt, out=jnlt);
+    And(a=jne, b=jnlt, out=jgt);
+    Or(a=jgt, b=jeq, out=jge);
+    Not(in=jgt, out=jle);
+    Mux8Way16(a[0]=false, b[0]=jgt, c[0]=jeq, d[0]=jge, e[0]=jlt, f[0]=jne, g[0]=jle, h[0]=true, sel=instruction[0..2], out[0]=jump0);
+    And(a=jump0, b=isBInstruction, out=jump);
+
+    // Program counter (priority = reset, load, inc)
+    PC(in=aOut, load=jump, inc=true, reset=reset, out[0..14]=pc);
+
+    // Should we write to memory?
+    And(a=isBInstruction, b=instruction[3], out=writeM);
 }

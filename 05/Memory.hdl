@@ -28,4 +28,18 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+
+    // 0x0000 = 000000000000000 (RAM)
+    // 0x2000 = 010000000000000 (RAM)
+    // 0x4000 = 100000000000000 (Screen)
+    // 0x6000 = 110000000000000 (Keyboard)
+
+    DMux4Way(in=load, sel[0]=address[13], sel[1]=address[14], a=loadRamA, b=loadRamB, c=loadScreen, d=loadKeyboard);
+    Or(a=loadRamA, b=loadRamB, out=loadRam);
+    
+    RAM16K(in=in, load=loadRam, address[0..13]=address[0..13], out=ramValue);
+    Screen(in=in, load=loadScreen, address[0..12]=address[0..12], out=screenValue);
+    Keyboard(out=keyboardValue);
+    
+    Mux4Way16(a=ramValue, b=ramValue, c=screenValue, d=keyboardValue, sel[0]=address[13], sel[1]=address[14], out=out);
 }
